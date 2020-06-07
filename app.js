@@ -3,17 +3,18 @@ const path = require('path');
 const logger = require('morgan');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
+const graphqlHTTP = require('express-graphql');
+const schema = require('./schema/schema');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const MongoStore = require('connect-mongo')(session);
 const cors = require('cors');
 require('dotenv').config();
-var createError = require('http-errors');
 
 
 // ROUTERS
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+// var indexRouter = require('./routes/index');
+// var usersRouter = require('./routes/users');
 
 
 // MONGOOSE CONNECTION
@@ -64,8 +65,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 
 // ROUTER MIDDLEWARES
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/graphql', graphqlHTTP({
+  // options
+  schema //schema: schema
+}));
+
+// app.use('/', indexRouter);
+// app.use('/users', usersRouter);
 
 
 // ERROR HANDLING
