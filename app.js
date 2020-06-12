@@ -1,22 +1,19 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const graphqlHTTP = require('express-graphql');
-const { buildSchema } = require('graphql')
-// const schema = require('./graphql/schema');
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-
 const path = require('path');
 const logger = require('morgan');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const MongoStore = require('connect-mongo')(session);
 
+const graphqlHTTP = require('express-graphql');
+const graphQlSchema = require('./graphql/schemas/index');
+const graphQlResolvers = require('./graphql/resolvers/index');
+
 const cors = require('cors');
 require('dotenv').config();
 
-const Task = require('./models/task');
-const User = require('./models/user');
 
 
 // MONGOOSE CONNECTION
@@ -67,110 +64,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 
 // ROUTER MIDDLEWARES
-
+// configuration of graphQL API
 app.use('/graphql', graphqlHTTP({ 
-  // configuration of graphQL API
-  schema: buildSchema(`
-    type Task {
-      _id: ID!
-      title: String!
-      description: String!
-      date: String!
-    }
-
-    type User {
-      _id: ID!
-      email: String!
-      password: String
-    }
-
-    input TaskInput {
-      title: String!
-      description: String!
-      date: String
-    }
-
-    input UserInput {
-      email: String!
-      password: String!
-    }
-
-    type RootQuery {
-      tasks: [Task!]!
-    }
-
-    type RootMutation {
-      createTask(taskInput: TaskInput): Task 
-      createUser(userInput: UserInput): User
-    }
-
-    schema {
-      query: RootQuery
-      mutation: RootMutation
-    } 
-  `),
-  rootValue: { 
-    tasks: () => {
-      return Task.find()
-      .then(tasks => {
-        return tasks.map(task => {
-          return task;
-        });
-      })
-      .catch(err => {
-        throw err;
-      })
-    },
-    createTask: args => {
-      const task = new Task({
-        title: args.taskInput.title,
-        description: args.taskInput.description,
-        date: new Date(args.taskInput.date),
-        creator: "5ee3a739759d0dbb5193bfe8" // mongoose converts this string in ObjectId format
-      })
-      let createdTask;
-      return task.save()
-      .then( newTask => {
-        createdTask = newTask;
-        return User.findById("5ee3a739759d0dbb5193bfe8")
-      })
-      .then(user =>{
-        if(!user){
-          throw new Error('User not found')
-        }
-        user.createdTasks.push(task);
-        return user.save(); // updates the user in the DB
-      })
-      .then( () => {
-        return createdTask;
-      })
-      .catch( err => {
-        throw err;
-      }); 
-    },
-    createUser: args => {
-      return User.findOne({email: args.userInput.email})
-      .then(user => {
-        if(user) {
-          throw new Error('User exists already');
-        }
-        return bcrypt.hash(args.userInput.password, 12);
-      })
-      .then(hashedPassword => {
-        const user = new User({
-          email: args.userInput.email,
-          password: hashedPassword
-        })
-        return user.save()
-      })
-      .then(result => {
-        return {...result._doc, password: null};
-      })
-      .catch( err => { 
-        throw err;
-      })
-    },
-  },
+  schema: graphQlSchema,
+  rootValue: graphQlResolvers,
   graphiql: true
 }));
 
