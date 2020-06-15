@@ -5,8 +5,10 @@ module.exports = buildSchema(`
       _id: ID!
       title: String!
       description: String!
-      date: String!
+      deadline: String!
+      taskCategory: String!
       creator: User!
+      completed: Boolean!
     }
 
     type User {
@@ -14,12 +16,14 @@ module.exports = buildSchema(`
       email: String!
       password: String
       createdTasks: [Task!]
+      completedTasks: [Task!]
     }
 
     input TaskInput {
       title: String!
       description: String!
-      date: String
+      deadline: String!
+      taskCategory: String!
     }
 
     input UserInput {

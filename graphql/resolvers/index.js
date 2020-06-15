@@ -8,7 +8,8 @@ const getUser = async userId => {
     const user = await User.findById(userId);
     return {
       ...user._doc, 
-      createdTasks: getTasks.bind(this, user._doc.createdTasks)
+      createdTasks: getTasks.bind(this, user._doc.createdTasks),
+      completedTasks: getTasks.bind(this, user._doc.completedTasks)
     }
   }
   catch (err) {
@@ -22,7 +23,7 @@ const getTasks = async tasksIds => {
     return tasks.map(task => {
       return {
         ...task._doc, 
-        date: new Date(task._doc.date).toISOString(), 
+        deadline: new Date(task._doc.deadline).toISOString(), 
         creator: getUser.bind(this, task._doc.creator )
       }
     })
@@ -41,7 +42,7 @@ module.exports = {
       return tasks.map(task => {
         return { 
           ...task._doc, 
-          date: new Date(task._doc.date).toISOString(), 
+          deadline: new Date(task._doc.deadline).toISOString(), 
           creator: getUser.bind(this, task._doc.creator) 
         };
       });
@@ -57,7 +58,8 @@ module.exports = {
       return users.map(user => {
         return {
           ...user._doc,
-          createdTasks: getTasks.bind(this, user._doc.createdTasks)
+          createdTasks: getTasks.bind(this, user._doc.createdTasks),
+          completedTasks: getTasks.bind(this, user._doc.completedTasks),
         }
       })
     } catch (err) {
@@ -69,7 +71,8 @@ module.exports = {
     const task = new Task({
       title: args.taskInput.title,
       description: args.taskInput.description,
-      date: new Date(args.taskInput.date),
+      deadline: new Date(args.taskInput.deadline),
+      taskCategory: args.taskInput.taskCategory,
       creator: "5ee3e8610ac82dd5e6c8e3a0" // mongoose converts this string in ObjectId format
     })
     let createdTask;
@@ -78,7 +81,7 @@ module.exports = {
       const newTask = await task.save()
       createdTask = {
         ...newTask._doc, 
-        date: new Date(newTask._doc.date).toISOString(), 
+        deadline: new Date(newTask._doc.deadline).toISOString(), 
         creator: getUser.bind(this, newTask._doc.creator)
       };
 
