@@ -8,8 +8,8 @@ const getUser = async userId => {
     const user = await User.findById(userId);
     return {
       ...user._doc, 
-      createdTasks: getTasks.bind(this, user._doc.createdTasks),
-      completedTasks: getTasks.bind(this, user._doc.completedTasks)
+      createdTasks: getAllTasks.bind(this, user._doc.createdTasks),
+      completedTasks: getAllTasks.bind(this, user._doc.completedTasks)
     }
   }
   catch (err) {
@@ -17,21 +17,38 @@ const getUser = async userId => {
   }
 }
 
-const getTasks = async tasksIds => {
+const transformTask = task => {
+  return {
+    ...task._doc, 
+    deadline: new Date(task._doc.deadline).toISOString(), 
+    creator: getUser.bind(this, task._doc.creator) 
+  }; 
+}
+
+const getAllTasks = async tasksIds => {
   try {
     const tasks = await Task.find({ _id: { $in: tasksIds }})
     return tasks.map(task => {
-      return {
-        ...task._doc, 
-        deadline: new Date(task._doc.deadline).toISOString(), 
-        creator: getUser.bind(this, task._doc.creator )
-      }
+      return transformTask(task);
     })
   } 
   catch (err) {
     throw err;
   }
 }
+
+const getSingleTask = async taskId => {
+  try {
+    const task = await Task.findById(taskId)
+    return transformTask(task);
+  } 
+  catch (err) {
+    throw err;
+  }
+}
+
+
+
 
 module.exports = { 
 
@@ -40,11 +57,7 @@ module.exports = {
       const tasks = await Task.find()
       // .populate('creator')
       return tasks.map(task => {
-        return { 
-          ...task._doc, 
-          deadline: new Date(task._doc.deadline).toISOString(), 
-          creator: getUser.bind(this, task._doc.creator) 
-        };
+        return transformTask(task);
       });
     } 
     catch(err) {
@@ -58,8 +71,8 @@ module.exports = {
       return users.map(user => {
         return {
           ...user._doc,
-          createdTasks: getTasks.bind(this, user._doc.createdTasks),
-          completedTasks: getTasks.bind(this, user._doc.completedTasks),
+          createdTasks: getAllTasks.bind(this, user._doc.createdTasks),
+          completedTasks: getAllTasks.bind(this, user._doc.completedTasks),
         }
       })
     } catch (err) {
@@ -73,19 +86,15 @@ module.exports = {
       description: args.taskInput.description,
       deadline: new Date(args.taskInput.deadline),
       taskCategory: args.taskInput.taskCategory,
-      creator: "5ee3e8610ac82dd5e6c8e3a0" // mongoose converts this string in ObjectId format
+      creator: "5ee8955c9ab24f43de260053" // mongoose converts this string in ObjectId format
     })
     let createdTask;
 
     try {
       const newTask = await task.save()
-      createdTask = {
-        ...newTask._doc, 
-        deadline: new Date(newTask._doc.deadline).toISOString(), 
-        creator: getUser.bind(this, newTask._doc.creator)
-      };
-
-      const userToUpdate = await User.findById("5ee3e8610ac82dd5e6c8e3a0")
+      createdTask = transformTask(newTask);
+     
+      const userToUpdate = await User.findById("5ee8955c9ab24f43de260053")
       if(!userToUpdate){
         throw new Error('User not found')
       }
@@ -117,4 +126,34 @@ module.exports = {
       throw err;
     }
   },
+
+  changeTaskStatus: async args => {
+    try {
+      const { taskId } = args;
+      let taskStatus;
+      const taskToUpdate = await Task.findById(taskId);
+      if(!taskToUpdate) {
+        throw new Error(`This task doesn't exist`);
+      } else {
+        taskStatus = taskToUpdate.completed;
+      }
+      console.log('taskStatus to change :>> ', taskStatus);
+
+      const taskUpdated = await Task.findByIdAndUpdate(
+        taskId, 
+        { completed: !taskStatus },
+        { new: true }
+      )
+
+      await User.updateOne(
+        { _id: taskToUpdate.creator },
+        { $pull: { createdTasks: taskId }, $push: { completedTasks: taskId } },
+        { new: true }
+      )
+      
+      return transformTask(taskUpdated);
+    } catch (err) {
+      throw err;
+    }
+  }
 }

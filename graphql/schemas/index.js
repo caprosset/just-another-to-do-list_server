@@ -39,6 +39,7 @@ module.exports = buildSchema(`
     type RootMutation {
       createTask(taskInput: TaskInput): Task 
       createUser(userInput: UserInput): User
+      changeTaskStatus(taskId: ID!): Task!
     }
 
     schema {
