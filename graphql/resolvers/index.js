@@ -147,7 +147,7 @@ module.exports = {
 
       await User.updateOne(
         { _id: taskToUpdate.creator },
-        { $pull: { createdTasks: taskId }, $push: { completedTasks: taskId } },
+        { $push: { completedTasks: taskId } },
         { new: true }
       )
       
