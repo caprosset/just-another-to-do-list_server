@@ -9,6 +9,8 @@ module.exports = buildSchema(`
       taskCategory: String!
       creator: User!
       completed: Boolean!
+      createdAt: String!
+      updatedAt: String!
     }
 
     type User {
